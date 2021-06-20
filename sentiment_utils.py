@@ -99,3 +99,33 @@ class TextClassificationModel(nn.Module):
     def forward(self, text, offsets):
         embedded = self.embedding(text, offsets)
         return self.fc(embedded)
+
+
+
+class TextLSTM(nn.Module):
+    def __init__(self, vocab_size, embed_dim, num_class, hidden_dim=3):
+        super(TextLSTM, self).__init__()
+        self.embedding = nn.EmbeddingBag(vocab_size, embed_dim, sparse=True)
+        self.LSTM = nn.LSTM(input_size=embed_dim, hidden_size=hidden_dim, num_layers=1, 
+                    batch_first=True, padding_idx=0)
+        self.linear1 = nn.Linear(hidden_dim, num_class)
+        # self.batch_norm1 = nn.BatchNorm1d(128)
+        # self.linear2 = nn.Linear(128, num_class)
+        self.dropout = nn.Dropout(0.4)
+        self.init_weights()
+
+    def init_weights(self):
+        initrange = 0.5
+        self.embedding.weight.data.uniform_(-initrange, initrange)
+        self.linear1.weight.data.uniform_(-initrange, initrange)
+        self.linear1.bias.data.zero_()
+        # self.linear2.weight.data.uniform_(-initrange, initrange)
+        # self.linear2.bias.data.zero_()
+
+    def forward(self, text, offsets):
+        embedded = self.embedding(text, offsets)
+        x = self.dropout(embedded)
+        lstm_out, (ht, ct) = self.LSTM(x)
+        # x = self.linear1(embedded)
+        # x = self.batch_norm1(x)
+        return self.linear1(ht)
